@@ -24,7 +24,9 @@ graphicsLib = open('graphics.h', 'w')
 graphicsLib.write('#include <avr/pgmspace.h>\n\n')
 graphicsLib.write('unsigned char big_one[1920] PROGMEM = { \n')
 disp = im.open('screen.jpg')
+sdisp= im.open('screen_s.jpg')
 pix = disp.load()
+spix= sdisp.load()
 count = 0
 for y in [0,1,2,3,4,5]:
 	page = ""
@@ -35,6 +37,22 @@ for y in [0,1,2,3,4,5]:
 		page += str(byte) + ", "
 		count += 1
 	graphicsLib.write(page + '\n')
+graphicsLib.write('}; \n \n')
+graphicsLib.write('unsigned char lil_one[10][3][16] PROGMEM = { \n')
+count = 0
+for num in range(10):
+	graphicsLib.write('{')
+	for y in [0,1,2]:
+		graphicsLib.write('{')
+		page = ""
+		for x in range(sdisp.size[0]/10):
+			byte = 0
+			for p in range(8):
+				byte += int(spix[num*16+x, (y*8+p)]<=(100,100,100))*2**p
+			page += str(byte) + ","
+			count += 1
+		graphicsLib.write(page + '}, ')
+	graphicsLib.write('}, \n')
 graphicsLib.write('};')
 sp= [0b0000000, 0b0000000, 0b0000000, 0b0000000]
 wa= [0b1000000, 0b1110000, 0b1111111, 0b0000000]

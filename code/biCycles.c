@@ -40,6 +40,7 @@ void lcd_col(unsigned char col);
 void lcd_clear(void);
 void lcd_draw_menu(void);
 void lcd_draw_bignum(unsigned char digit, unsigned char num);
+void lcd_draw_lilnum(unsigned char digit, unsigned char num);
 
 volatile char mode = 0;
 
@@ -65,11 +66,12 @@ int main(void)
 	sei();
 	while(1==1)
 	{
-		mode=(mode+1)%3;
-		lcd_draw_bignum(0,mode);
-		lcd_draw_bignum(1,mode+3);
-		lcd_draw_menu();
-		_delay_ms(500);
+		for (int x=0;x<0xff;x++)
+		{
+
+			lcd_draw_menu();
+			_delay_ms(500);
+		}
 	}
 }
 
@@ -123,7 +125,7 @@ void lcd_init(void)
 	lcd_spi_command(0x2f); //turn on Booster
 	lcd_spi_command(0x25); //set contrast
 	lcd_spi_command(0x81); //set contrast
-	lcd_spi_command(0x15); //set contrast
+	lcd_spi_command(0x1b); //set contrast
 	lcd_spi_command(0xfa); //temp compensation
 	lcd_spi_command(0x90); //temp compensation
 	lcd_spi_command(0xaf); //Set Display Enable
@@ -185,6 +187,19 @@ void lcd_draw_bignum(unsigned char digit, unsigned char num)
 		{
 			lcd_col(x+digit*32);
 			lcd_spi_data(MEM_read(big_one[(y-2)*320+x+32*num]));
+		}
+	}
+}
+
+void lcd_draw_lilnum(unsigned char digit, unsigned char num)
+{
+	for (int y=5; y<8; y++)
+	{
+		LCD_page(y);
+		for (int x=0; x<16; x++)
+		{
+			lcd_col(x+digit*16+64);
+			lcd_spi_data(MEM_read(lil_one[num][y-5][x]));
 		}
 	}
 }
