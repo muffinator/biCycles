@@ -68,7 +68,9 @@ int main(void)
 	{
 		for (int x=0;x<0xff;x++)
 		{
-
+			lcd_draw_bignum(0,1);
+			lcd_draw_bignum(1,2);
+			lcd_draw_lilnum(0,3);
 			lcd_draw_menu();
 			_delay_ms(500);
 		}
@@ -186,7 +188,7 @@ void lcd_draw_bignum(unsigned char digit, unsigned char num)
 		for (int x=0; x<32; x++)
 		{
 			lcd_col(x+digit*32);
-			lcd_spi_data(MEM_read(big_one[(y-2)*320+x+32*num]));
+			lcd_spi_data(MEM_read(big_one[num][y-2][x]));
 		}
 	}
 }

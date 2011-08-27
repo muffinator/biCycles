@@ -22,27 +22,32 @@
 import Image as im
 graphicsLib = open('graphics.h', 'w')
 graphicsLib.write('#include <avr/pgmspace.h>\n\n')
-graphicsLib.write('unsigned char big_one[1920] PROGMEM = { \n')
+graphicsLib.write('unsigned char big_one[10][6][32] PROGMEM = { \n')
 disp = im.open('screen.jpg')
 sdisp= im.open('screen_s.jpg')
 pix = disp.load()
 spix= sdisp.load()
 count = 0
-for y in [0,1,2,3,4,5]:
-	page = ""
-	for x in range(disp.size[0]):
-		byte = 0
-		for p in range(8):
-			byte += int(pix[x,(y*8+p)]<=(100,100,100))*2**p
-		page += str(byte) + ", "
-		count += 1
-	graphicsLib.write(page + '\n')
+for num in range(10):
+	graphicsLib.write('{')
+	for y in range(6):
+		graphicsLib.write('{')
+		page = ""
+		for x in range(disp.size[0]/10):
+			byte = 0
+			for p in range(8):
+				byte += int(pix[num*32+x,(y*8+p)]<=(100,100,100))*2**p
+			page += str(byte) + ", "
+			count += 1
+		graphicsLib.write(page + '}, ')
+	graphicsLib.write('}, \n')
 graphicsLib.write('}; \n \n')
 graphicsLib.write('unsigned char lil_one[10][3][16] PROGMEM = { \n')
+print count
 count = 0
 for num in range(10):
 	graphicsLib.write('{')
-	for y in [0,1,2]:
+	for y in range(3):
 		graphicsLib.write('{')
 		page = ""
 		for x in range(sdisp.size[0]/10):
