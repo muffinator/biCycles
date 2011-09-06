@@ -55,7 +55,8 @@ ISR(PCINT2_vect)
 
 int main(void)
 {
-	DDRD &= ~0x01;
+	DDRD &= ~0x81;
+	DDRD |= 0x40;
 	PORTD |= 0x01;
 	DDRB = 0xFF;
 	PCICR = (1<<2);
@@ -68,11 +69,14 @@ int main(void)
 	{
 		for (int x=0;x<0xff;x++)
 		{
-			lcd_draw_bignum(0,1);
+			//lcd_draw_bignum(0,1);
 			lcd_draw_bignum(1,2);
 			lcd_draw_lilnum(0,3);
 			lcd_draw_menu();
 			_delay_ms(500);
+			PORTD ^= 0x40;
+			unsigned char mag = ((PIND&0x80)==0x80);
+			lcd_draw_bignum(0,mag);
 		}
 	}
 }
