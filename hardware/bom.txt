@@ -1,0 +1,7 @@
+Part            Quantity    Ordering Number         Desc.
+ATMega328       1           ATMEGA328-AU-ND         microcontroller
+TS4431ILT       1           497-5198-1-ND           1.224 voltage reference
+AH373-PL-B      2           AH373-PL-BDI-ND         latched hall effect
+0ZCA0010FF2E    1           507-1477-1-ND           resettable fuse (250 ma trip)
+MCP73812T       1           MCP73812T-420I/OTCT-ND  lithium ion battery charger
+
