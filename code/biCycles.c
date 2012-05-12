@@ -17,13 +17,13 @@
 //      Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 //      MA 02110-1301, USA.
 
-#define LCD_SPI_data()		(PORTB |=(1<<1))
-#define LCD_SPI_command()	(PORTB &= ~(1<<1))
-#define LCD_SPI_CS_High()	(PORTB |= (1<<0))
-#define LCD_SPI_CS_Low()	(PORTB &= ~(1<<0))
+#define LCD_SPI_data()		(PORTD |=(1<<4))
+#define LCD_SPI_command()	(PORTD &= ~(1<<4))
+#define LCD_SPI_CS_High()	(PORTD |= (1<<2))
+#define LCD_SPI_CS_Low()	(PORTD &= ~(1<<2))
 #define LCD_page(page)		(lcd_spi_command(0xb0+page))
 #define MEM_read(byte)	(pgm_read_byte(&(byte)))
-#define LCD_RESET 0x04
+#define LCD_RESET (1<<3)
 #define F_CPU 8000000UL
 
 #include <avr/interrupt.h>
@@ -58,7 +58,7 @@ int main(void)
 	DDRD &= ~0x81;
 	DDRD |= 0x40;
 	PORTD |= 0x01;
-	DDRB = 0xFF;
+//	DDRB = 0xFF;
 	PCICR = (1<<2);
 	PCMSK2 = 0x01;
 	lcd_init();
@@ -116,9 +116,9 @@ void lcd_init(void)
 {
 	lcd_spi_init();
 	//reset lcd
-	PORTB &= ~(LCD_RESET);
+	PORTD &= ~(LCD_RESET);
 	_delay_ms(200);
-	PORTB |= LCD_RESET;
+	PORTD |= LCD_RESET;
 	_delay_ms(10);
 
 	//initialization sequence
