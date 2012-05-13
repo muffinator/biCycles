@@ -55,10 +55,9 @@ ISR(PCINT2_vect)
 
 int main(void)
 {
-	DDRD &= ~0x81;
-	DDRD |= 0x40;
+	DDRD |= 0xff;
 	PORTD |= 0x01;
-//	DDRB = 0xFF;
+	DDRB = 0xff;
 	PCICR = (1<<2);
 	PCMSK2 = 0x01;
 	lcd_init();
