@@ -7,4 +7,13 @@ MCP73812T       1           MCP73812T-420I/OTCT-ND  lithium ion battery charger
 114-00841-68    1           114-00841-68-1-ND       Micro SD card holder
 LP2985          1           296-18476-1-ND          3.3V voltage regulator
 74HC4050D,652   1           568-1453-5-ND           Hex level shifter (buffer)
-
+                1                                   3.2 X 2.5 mm 16MHz xtal
+                2                                   8pF load caps for xtal
+                1                                   micro usb connector
+                1                                   rechargable battery
+                n                                   capacitors
+                n                                   resistors
+                n                                   male headers
+                n                                   female headers
+                2                                   buttons
+                1                                   LED
