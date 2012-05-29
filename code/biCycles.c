@@ -43,23 +43,25 @@ void lcd_draw_bignum(unsigned char digit, unsigned char num);
 void lcd_draw_lilnum(unsigned char digit, unsigned char num);
 
 volatile char mode = 0;
+volatile char revs = 0;
 
 ISR(PCINT2_vect)
 {
-	if(PIND==0x00)
+	if((PIND&0x20)==0x20)
 	{
-		mode=(mode+1)%3;
-		lcd_draw_menu();
+		revs++;
 	}
 }
 
 int main(void)
 {
 	DDRD |= 0xff;
+	DDRD &= ~0x20; //hall0 input
 	PORTD |= 0x01;
+	PORTD |= 0x80; //turn on hall sensors
 	DDRB = 0xff;
 	PCICR = (1<<2);
-	PCMSK2 = 0x01;
+	PCMSK2 = (1<<5);//|(1<<6);
 	lcd_init();
 	lcd_clear();
 	lcd_draw_menu();
@@ -69,13 +71,11 @@ int main(void)
 		for (int x=0;x<0xff;x++)
 		{
 			//lcd_draw_bignum(0,1);
-			lcd_draw_bignum(1,2);
-			lcd_draw_lilnum(0,3);
 			lcd_draw_menu();
 			_delay_ms(500);
 			PORTD ^= 0x40;
-			unsigned char mag = ((PIND&0x80)==0x80);
-			lcd_draw_bignum(0,mag);
+			lcd_draw_bignum(1,revs%10);
+			lcd_draw_bignum(0,(revs-revs%10)/10);
 		}
 	}
 }
