@@ -38,45 +38,57 @@ void lcd_init(void);
 void lcd_draw(unsigned char page, unsigned char col, unsigned char data);
 void lcd_col(unsigned char col);
 void lcd_clear(void);
-void lcd_draw_menu(void);
+void lcd_draw_menu(unsigned char modus, unsigned char battery);
 void lcd_draw_bignum(unsigned char digit, unsigned char num);
 void lcd_draw_lilnum(unsigned char digit, unsigned char num);
 
 volatile char mode = 0;
+volatile unsigned char vread = 0;
+volatile unsigned int vol = 0;
+volatile unsigned char bat = 0;
+char butt1 = 0;
+
+ISR(ADC_vect)
+{
+	vread = ADCH;
+	vol = 27000/vread;
+	bat = (85-vread)/2;
+}
 
 ISR(PCINT2_vect)
 {
 	if(PIND==0x00)
 	{
 		mode=(mode+1)%3;
-		lcd_draw_menu();
+		lcd_draw_menu(mode,bat);
 	}
 }
 
 int main(void)
 {
+	DDRC &= ~0x12; //Buttons as inputs
+	PORTC |= 0x12; //pulled high internally
 	DDRD |= 0xff;
 	PORTD |= 0x01;
 	DDRB = 0xff;
+	PORTB &= ~0x01;
 	PCICR = (1<<2);
 	PCMSK2 = 0x01;
+	ADMUX = (1<<5)|0x0e; //VREF source, Left-adjust, select chanel 5
+	ADCSRA = (1<<ADEN)|(1<<ADIE)|(1<<ADPS2)|(1<<ADPS1); //Enable adc and interrupts, div64 prescale
+	//DIDR0|= (1<<5); //Disable digital input 5
 	lcd_init();
 	lcd_clear();
-	lcd_draw_menu();
+	lcd_draw_menu(mode,bat);
 	sei();
 	while(1==1)
 	{
-		for (int x=0;x<0xff;x++)
-		{
-			//lcd_draw_bignum(0,1);
-			lcd_draw_bignum(1,2);
-			lcd_draw_lilnum(0,3);
-			lcd_draw_menu();
-			_delay_ms(500);
-			PORTD ^= 0x40;
-			unsigned char mag = ((PIND&0x80)==0x80);
-			lcd_draw_bignum(0,mag);
-		}
+		ADCSRA |= (1<<ADSC); //start conversion
+		lcd_draw_bignum(0,bat);
+		lcd_draw_bignum(1,(vread/10)%10);
+		lcd_draw_lilnum(0,(vread%10));
+		lcd_draw_menu(mode,bat);
+		_delay_ms(100);
 	}
 }
 
@@ -160,12 +172,12 @@ void lcd_clear(void)
 		}
 	}
 }
-void lcd_draw_menu(void)
+void lcd_draw_menu(unsigned char modus, unsigned char battery)
 {
 	LCD_page(0);
-	char mode0 = (mode==0)*0x7f;
-	char mode1 = (mode==1)*0x7f;
-	char mode2 = (mode==2)*0x7f;
+	char mode0 = (modus==0)*0x7f;
+	char mode1 = (modus==1)*0x7f;
+	char mode2 = (modus==2)*0x7f;
 	for (int x=0;x<31;x++)
 	{
 		lcd_col(x);
@@ -181,6 +193,18 @@ void lcd_draw_menu(void)
 		lcd_col(x);
 		lcd_spi_data(mode2^MEM_read(menu[x]));
 	}
+	for (int x=91;x<(91+battery);x++)
+	{
+		lcd_col(x);
+		lcd_spi_data(0x3c);
+	}
+	for (int x=91+battery; x<101;x++)
+	{
+		lcd_col(x);
+		lcd_spi_data(0x00);
+	}
+	lcd_col(101);
+	lcd_spi_data(0xff);
 }
 
 void lcd_draw_bignum(unsigned char digit, unsigned char num)
