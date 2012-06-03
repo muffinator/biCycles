@@ -46,6 +46,7 @@ volatile char mode = 0;
 volatile unsigned char vread = 0;
 volatile unsigned int vol = 0;
 volatile unsigned char bat = 0;
+volatile char revs = 0;
 char butt1 = 0;
 
 ISR(ADC_vect)
@@ -57,11 +58,7 @@ ISR(ADC_vect)
 
 ISR(PCINT2_vect)
 {
-	if(PIND==0x00)
-	{
-		mode=(mode+1)%3;
-		lcd_draw_menu(mode,bat);
-	}
+	revs++;
 }
 
 int main(void)
@@ -69,7 +66,9 @@ int main(void)
 	DDRC &= ~0x12; //Buttons as inputs
 	PORTC |= 0x12; //pulled high internally
 	DDRD |= 0xff;
+	DDRD &= ~0x20; //hall0 input
 	PORTD |= 0x01;
+	PORTD |= 0x80; //turn on hall sensors
 	DDRB = 0xff;
 	PORTB &= ~0x01;
 	PCICR = (1<<2);
@@ -84,11 +83,10 @@ int main(void)
 	while(1==1)
 	{
 		ADCSRA |= (1<<ADSC); //start conversion
-		lcd_draw_bignum(0,bat);
-		lcd_draw_bignum(1,(vread/10)%10);
-		lcd_draw_lilnum(0,(vread%10));
 		lcd_draw_menu(mode,bat);
-		_delay_ms(100);
+		_delay_ms(500);
+		lcd_draw_bignum(1,revs%10);
+		lcd_draw_bignum(0,(revs-revs%10)/10);
 	}
 }
 
