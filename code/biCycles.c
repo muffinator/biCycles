@@ -24,7 +24,7 @@
 #define LCD_page(page)		(lcd_spi_command(0xb0+page))
 #define MEM_read(byte)	(pgm_read_byte(&(byte)))
 #define LCD_RESET (1<<3)
-#define F_CPU 8000000UL
+#define F_CPU 16000000UL
 
 #include <avr/interrupt.h>
 #include <util/delay.h>
@@ -46,7 +46,10 @@ volatile char mode = 0;
 volatile unsigned char vread = 0;
 volatile unsigned int vol = 0;
 volatile unsigned char bat = 0;
-volatile char revs = 0;
+volatile unsigned char revs = 0;
+volatile float t=0;
+float dt =0;
+unsigned int v=0;
 char butt1 = 0;
 
 ISR(ADC_vect)
@@ -58,7 +61,12 @@ ISR(ADC_vect)
 
 ISR(PCINT2_vect)
 {
-	revs++;
+	if((PIND&0x20)==0x20)
+	{
+		t = TCNT1;
+		TCNT1=0;
+		revs++;
+	}
 }
 
 int main(void)
@@ -67,26 +75,32 @@ int main(void)
 	PORTC |= 0x12; //pulled high internally
 	DDRD |= 0xff;
 	DDRD &= ~0x20; //hall0 input
-	PORTD |= 0x01;
+	PORTD |= 0x20;
 	PORTD |= 0x80; //turn on hall sensors
 	DDRB = 0xff;
 	PORTB &= ~0x01;
 	PCICR = (1<<2);
-	PCMSK2 = 0x01;
+	PCMSK2 = 0x20;
 	ADMUX = (1<<5)|0x0e; //VREF source, Left-adjust, select chanel 5
 	ADCSRA = (1<<ADEN)|(1<<ADIE)|(1<<ADPS2)|(1<<ADPS1); //Enable adc and interrupts, div64 prescale
 	//DIDR0|= (1<<5); //Disable digital input 5
+	
+	TCCR1A = 0;
+	TCCR1B = (1<<CS12)|(1<<CS10);
+	//TIMSK1 = (1<<TOIE1);
 	lcd_init();
 	lcd_clear();
 	lcd_draw_menu(mode,bat);
 	sei();
 	while(1==1)
 	{
+		dt = (15625/t)*49;
+		v = dt;
 		ADCSRA |= (1<<ADSC); //start conversion
 		lcd_draw_menu(mode,bat);
 		_delay_ms(500);
-		lcd_draw_bignum(1,revs%10);
-		lcd_draw_bignum(0,(revs-revs%10)/10);
+		lcd_draw_bignum(1,v%10);
+		lcd_draw_bignum(0,(v-v%10)/10);
 	}
 }
 
