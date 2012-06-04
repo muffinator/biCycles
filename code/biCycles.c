@@ -58,6 +58,14 @@ ISR(ADC_vect)
 	vol = 27000/vread;
 	bat = (85-vread)/2;
 }
+ISR(PCINT1_vect)
+{
+		if((PINC&0x02)==0x02)
+		{
+			mode = (mode+1)%3;
+		}
+}
+
 
 ISR(PCINT2_vect)
 {
@@ -79,8 +87,9 @@ int main(void)
 	PORTD |= 0x80; //turn on hall sensors
 	DDRB = 0xff;
 	PORTB &= ~0x01;
-	PCICR = (1<<2);
-	PCMSK2 = 0x20;
+	PCICR = (1<<2)|(1<<1);
+	PCMSK2 = 0x20; //enable hall0 pcint
+	PCMSK1 = 0x12; //enable button pcint
 	ADMUX = (1<<5)|0x0e; //VREF source, Left-adjust, select chanel 5
 	ADCSRA = (1<<ADEN)|(1<<ADIE)|(1<<ADPS2)|(1<<ADPS1); //Enable adc and interrupts, div64 prescale
 	//DIDR0|= (1<<5); //Disable digital input 5
