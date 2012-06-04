@@ -56,13 +56,16 @@ ISR(ADC_vect)
 {
 	vread = ADCH;
 	vol = 27000/vread;
-	bat = (85-vread)/2;
+	bat = (86-vread)/2;
 }
 ISR(PCINT1_vect)
 {
 		if((PINC&0x02)==0x02)
 		{
 			mode = (mode+1)%3;
+		}
+		if((PINC&0x10)==0x10)
+		{
 		}
 }
 
@@ -107,7 +110,7 @@ int main(void)
 		v = dt;
 		ADCSRA |= (1<<ADSC); //start conversion
 		lcd_draw_menu(mode,bat);
-		_delay_ms(500);
+		_delay_ms(200);
 		lcd_draw_bignum(1,v%10);
 		lcd_draw_bignum(0,(v-v%10)/10);
 	}
