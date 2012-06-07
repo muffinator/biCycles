@@ -24,11 +24,15 @@
 #define LCD_page(page)		(lcd_spi_command(0xb0+page))
 #define MEM_read(byte)	(pgm_read_byte(&(byte)))
 #define LCD_RESET (1<<3)
+#define SD_pwr_on()		(PORTB |= (1<<2))
+#define SD_pwr_off()	(PORTB &= ~(1<<2))
+#define SD_CS	(1<<3)
 #define F_CPU 16000000UL
 
 #include <avr/interrupt.h>
 #include <util/delay.h>
 #include <stdlib.h>
+#include <math.h>
 #include "graphics.h"
 
 void lcd_spi_init(void);
@@ -46,11 +50,13 @@ volatile char mode = 0;
 volatile unsigned char vread = 0;
 volatile unsigned int vol = 0;
 volatile unsigned char bat = 0;
-volatile unsigned char revs = 0;
-volatile float t=0;
-float dt =0;
+volatile unsigned int revs = 0;
+volatile char pin0 = 0;
+volatile char pin1 = 0;
+volatile unsigned int t=0;
 unsigned int v=0;
-char butt1 = 0;
+unsigned char bdisp;
+unsigned char ldisp;
 
 ISR(ADC_vect)
 {
@@ -60,12 +66,13 @@ ISR(ADC_vect)
 }
 ISR(PCINT1_vect)
 {
-		if((PINC&0x02)==0x02)
+		if((PINC&0x02)!=0x02)
 		{
-			mode = (mode+1)%3;
+			pin0++;
 		}
-		if((PINC&0x10)==0x10)
+		if((PINC&0x10)!=0x10)
 		{
+			pin1++;
 		}
 }
 
@@ -82,21 +89,23 @@ ISR(PCINT2_vect)
 
 int main(void)
 {
+	DDRC |= 0x04; //LED as output
 	DDRC &= ~0x12; //Buttons as inputs
-	PORTC |= 0x12; //pulled high internally
+	PORTC = 0x16; //pulled high internally
 	DDRD |= 0xff;
 	DDRD &= ~0x20; //hall0 input
 	PORTD |= 0x20;
 	PORTD |= 0x80; //turn on hall sensors
 	DDRB = 0xff;
 	PORTB &= ~0x01;
+	
 	PCICR = (1<<2)|(1<<1);
 	PCMSK2 = 0x20; //enable hall0 pcint
 	PCMSK1 = 0x12; //enable button pcint
+	
 	ADMUX = (1<<5)|0x0e; //VREF source, Left-adjust, select chanel 5
 	ADCSRA = (1<<ADEN)|(1<<ADIE)|(1<<ADPS2)|(1<<ADPS1); //Enable adc and interrupts, div64 prescale
-	//DIDR0|= (1<<5); //Disable digital input 5
-	
+		
 	TCCR1A = 0;
 	TCCR1B = (1<<CS12)|(1<<CS10);
 	//TIMSK1 = (1<<TOIE1);
@@ -106,13 +115,38 @@ int main(void)
 	sei();
 	while(1==1)
 	{
-		dt = (15625/t)*49;
-		v = dt;
+		PCICR = 0x04; //disable button interrupts to process button presses
+		mode = (mode+pin0)%3;
+		pin0=0;
+		if(mode==0)
+		{
+			bdisp = (15625.0/t)*4.9;
+			ldisp = (15625.0/t)*490;
+		}
+		if(mode==1)
+		{
+			bdisp = revs*0.0013635;
+			ldisp = revs*0.13635;
+		}
+		if(mode==2)
+		{
+			if(pin1>0)
+			{
+				PORTC &= ~0x04;
+			}
+			else
+			{
+				PORTC |= 0x04;
+			}
+		}
+		PCICR = 0x06; //enable button interrupts
 		ADCSRA |= (1<<ADSC); //start conversion
 		lcd_draw_menu(mode,bat);
+		lcd_draw_bignum(0,(bdisp/10)%10);
+		lcd_draw_bignum(1,bdisp%10);
+		lcd_draw_lilnum(0,(ldisp/10)%10);
+		lcd_draw_lilnum(1,ldisp%10);
 		_delay_ms(200);
-		lcd_draw_bignum(1,v%10);
-		lcd_draw_bignum(0,(v-v%10)/10);
 	}
 }
 
