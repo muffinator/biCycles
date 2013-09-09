@@ -53,10 +53,16 @@ volatile unsigned char bat = 0;
 volatile unsigned int revs = 0;
 volatile char pin0 = 0;
 volatile char pin1 = 0;
+volatile char pinpush=0;
 volatile unsigned int t=0;
+volatile unsigned char overf=0;
 unsigned int v=0;
-unsigned char bdisp;
-unsigned char ldisp;
+unsigned int bdisp;
+unsigned int ldisp;
+unsigned int avg=0;
+unsigned int vel=0;
+unsigned int dist=0;
+unsigned char contrast = 0x1b;
 
 ISR(ADC_vect)
 {
@@ -64,6 +70,7 @@ ISR(ADC_vect)
 	vol = 27000/vread;
 	bat = (86-vread)/2;
 }
+
 ISR(PCINT1_vect)
 {
 		if((PINC&0x02)!=0x02)
@@ -74,6 +81,7 @@ ISR(PCINT1_vect)
 		{
 			pin1++;
 		}
+		pinpush=1;
 }
 
 
@@ -85,6 +93,14 @@ ISR(PCINT2_vect)
 		TCNT1=0;
 		revs++;
 	}
+}
+
+ISR(TIMER1_OVF_vect)
+{
+		if(overf<5)
+		{		//display sleep	
+			overf++;
+		}
 }
 
 int main(void)
@@ -108,7 +124,8 @@ int main(void)
 		
 	TCCR1A = 0;
 	TCCR1B = (1<<CS12)|(1<<CS10);
-	//TIMSK1 = (1<<TOIE1);
+	TIMSK1 = (1<<TOIE1);  //enable overflow interrupt
+	lcd_spi_init();
 	lcd_init();
 	lcd_clear();
 	lcd_draw_menu(mode,bat);
@@ -118,27 +135,48 @@ int main(void)
 		PCICR = 0x04; //disable button interrupts to process button presses
 		mode = (mode+pin0)%3;
 		pin0=0;
+		vel = (15625.0/t)*490;
+		dist = revs*0.13635;
+		avg=(vel+avg)/2;
 		if(mode==0)
 		{
-			bdisp = (15625.0/t)*4.9;
-			ldisp = (15625.0/t)*490;
+			ldisp = vel;
 		}
 		if(mode==1)
 		{
-			bdisp = revs*0.0013635;
-			ldisp = revs*0.13635;
+			ldisp = dist;
+			if(pin1>0)
+			{
+				contrast++;
+				lcd_spi_command(0x81);
+				lcd_spi_command(contrast);
+				pin1=0;
+			}
 		}
 		if(mode==2)
 		{
+			ldisp = avg;
 			if(pin1>0)
 			{
-				PORTC &= ~0x04;
-			}
-			else
-			{
-				PORTC |= 0x04;
+				lcd_init();
+				pin1=0;
+				PORTC ^= 0x04;
 			}
 		}
+		if(overf==5)
+		{
+			lcd_spi_command(0xa5);
+			lcd_spi_command(0xae);
+			overf=6;
+		}
+		if(overf==6&&pinpush==1)
+		{
+			lcd_spi_command(0xa4);
+			lcd_spi_command(0xaf);
+			overf=0;
+			pinpush=0;
+		}
+		bdisp = ldisp/100.0;
 		PCICR = 0x06; //enable button interrupts
 		ADCSRA |= (1<<ADSC); //start conversion
 		lcd_draw_menu(mode,bat);
@@ -183,7 +221,6 @@ void lcd_spi_data(unsigned char data)
 
 void lcd_init(void)
 {
-	lcd_spi_init();
 	//reset lcd
 	PORTD &= ~(LCD_RESET);
 	_delay_ms(200);
